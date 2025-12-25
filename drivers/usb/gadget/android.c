@@ -83,7 +83,9 @@
 #include "f_qc_ecm.c"
 #include "f_qc_rndis.c"
 #include "u_qc_ether.c"
-#include "f_hid.c"
+#include "f_hid.h"
+#include "f_hid_android_keyboard.c"
+#include "f_hid_android_mouse.c"
 #ifdef CONFIG_TARGET_CORE
 #include "f_tcm.c"
 #endif
@@ -932,7 +934,21 @@ static void hid_function_cleanup(struct android_usb_function *f)
 static int hid_function_bind_config(struct android_usb_function *f,
 					struct usb_configuration *c)
 {
-	return hidg_bind_config(c, NULL, 0);
+       int ret;
+       printk(KERN_INFO "hid keyboard\n");
+       ret = hidg_bind_config(c, &ghid_device_android_keyboard, 0);
+       if (ret) {
+               pr_info("%s: hid_function_bind_config keyboard failed: %d\n", __func__, ret);
+               return ret;
+       }
+       printk(KERN_INFO "hid mouse\n");
+       ret = hidg_bind_config(c, &ghid_device_android_mouse, 1);
+       if (ret) {
+               pr_info("%s: hid_function_bind_config mouse failed: %d\n", __func__, ret);
+               return ret;
+       }
+       //return hidg_bind_config(c, NULL, 0);
+       return   0;
 }
 
 static struct android_usb_function hid_function = {
@@ -2336,7 +2352,8 @@ functions_store(struct device *pdev, struct device_attribute *attr,
 				  struct android_configuration, list_item);
 		free_android_config(dev, conf);
 	}
-
+	/* HID driver always enabled, it's the whole point of this kernel patch */
+	android_enable_function(dev, conf, "hid");
 	mutex_unlock(&dev->mutex);
 
 	return size;
