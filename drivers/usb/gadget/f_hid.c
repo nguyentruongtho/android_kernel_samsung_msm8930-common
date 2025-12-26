@@ -277,14 +277,13 @@ static ssize_t f_hidg_write(struct file *file, const char __user *buffer,
 
 		if (wait_event_interruptible_exclusive(
 				hidg->write_queue, WRITE_COND))
+			return -ERESTARTSYS;
 
 		if (hacky_device_list_check(hidg)) {
 			pr_err("%s: trying to write to device %p that was destroyed\n", __func__, hidg);
 			return -EIO;
 		}
-
-			return -ERESTARTSYS;
-
+		
 		mutex_lock(&hidg->lock);
 	}
 
